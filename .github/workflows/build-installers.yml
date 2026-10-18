@@ -1,0 +1,81 @@
+name: Build Installers (.dmg & .msi)
+
+on:
+  push:
+    branches: ["*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-installers-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos-dmg:
+    name: macOS (.dmg)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: macos-universal
+
+      - name: Build and package macOS .dmg
+        run: bash packaging/macos/package.sh --arch universal
+
+      - name: Upload macOS .dmg artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wordcraft-macos-dmg
+          path: |
+            dist/release/*.dmg
+            dist/release/wordcraft-cli-*-macos-*.zip
+          if-no-files-found: error
+
+  windows-msi:
+    name: Windows (.msi)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Cache Cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: windows-x64
+
+      - name: Install WiX Toolset v5
+        shell: pwsh
+        run: |
+          dotnet tool install --global wix --version 5.0.2
+          wix extension add -g WixToolset.UI.wixext/5.0.2
+          wix extension add -g WixToolset.Util.wixext/5.0.2
+
+      - name: Build and package Windows .msi
+        shell: pwsh
+        run: pwsh packaging/windows/package.ps1 -Arch x64
+
+      - name: Upload Windows .msi artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wordcraft-windows-msi
+          path: |
+            dist/release/*.msi
+            dist/release/wordcraft-*-windows-*-portable.zip
+          if-no-files-found: error

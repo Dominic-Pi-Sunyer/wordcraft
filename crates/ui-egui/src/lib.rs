@@ -74,6 +74,7 @@ pub mod ribbon;
 pub mod ribbon_fit;
 pub mod ruler_tabs;
 pub mod scroll;
+pub mod share;
 pub mod system_clipboard;
 pub mod table_mouse;
 pub mod table_pen;
@@ -497,6 +498,9 @@ fn migrate_units(v: &mut Value) {
 /// The application.
 pub struct WordApp {
     pub session: Session,
+    /// Share Mode: live editing with other people (see `share.rs`).
+    pub collab: wordcraft_collab::Collab,
+    pub share_ui: share::ShareUi,
     pub ui: UiState,
     pub services: Services,
     pub printing: printing::State,
@@ -652,6 +656,8 @@ impl WordApp {
         }
         WordApp {
             session,
+            collab: wordcraft_collab::Collab::new(),
+            share_ui: Default::default(),
             ui: UiState::default(),
             services,
             printing: Default::default(),
@@ -998,9 +1004,19 @@ impl WordApp {
             }
             return Ok(json!({"downloaded": name, "bytes": bytes.len()}));
         }
+        // Share Mode: refuse what must not happen now (view-only, starting up), and send what the
+        // user changes to the others.
+        if let Err(e) = self.collab.gate(&self.session, id, &params) {
+            self.status(e.clone());
+            return Err(e);
+        }
+        let shared_before = self.collab.before(&self.session);
         let document = self.session.document_id();
         let old_path = self.session.path.clone();
         let r = self.session.run(id, &params).map_err(|e| e.to_string());
+        if r.is_ok() {
+            self.collab.after(&self.session, shared_before, id, &params);
+        }
         // Copy and Cut put what they took on the system clipboard, whichever control ran them
         // (the ribbon, a context menu, the native menu, or the Cmd+C/X event). Only the key event
         // used to write it, so a Cut button deleted the words without copying them.
@@ -1949,6 +1965,7 @@ impl WordApp {
             self.applied_editing = Some(lang);
         }
         options::sync(self);
+        share::poll(self, ctx);
         self.settle_async_saves();
         // Chinese text wants the Chinese face before the Japanese one (one glyph style per line).
         // An installed CJK font is read only once CJK text is shown (#241): a CJK interface, the

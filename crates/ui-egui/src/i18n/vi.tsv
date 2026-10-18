@@ -2738,3 +2738,15 @@ template	Letter	Thư
 	Type a size in any unit, such as 5 cm or 300 px. The other side follows, so the picture keeps its proportions.	Nhập kích thước theo đơn vị bất kỳ, ví dụ 5 cm hoặc 300 px. Cạnh còn lại thay đổi theo, nên ảnh giữ nguyên tỷ lệ.
 
 	Import…	Nhập…
+	Co-edit	Cùng chỉnh sửa
+	Edit this document together, live	Cùng chỉnh sửa tài liệu này theo thời gian thực
+	Share Document	Chia sẻ tài liệu
+	Join via Link	Tham gia bằng liên kết
+	Copy Edit Link	Sao chép liên kết chỉnh sửa
+	Copy View-Only Link	Sao chép liên kết chỉ xem
+	Stop Sharing	Dừng chia sẻ
+	View Only	Chỉ xem
+	Live ({n} Peer)	Trực tiếp ({n} người)
+	Live ({n} Peers)	Trực tiếp ({n} người)
+	Leave	Rời đi
+	Working…	Đang xử lý…
