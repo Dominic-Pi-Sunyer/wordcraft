@@ -177,6 +177,9 @@ pub fn enabled(app: &WordApp, id: &str) -> bool {
     if !app.has_document() && !crate::works_without_document(id) {
         return false;
     }
+    if app.collab.gate(&app.session, id, &Value::Null).is_err() {
+        return false;
+    }
     match app.session.registry.get(id) {
         Some(s) => (s.enabled)(&app.session).is_none(),
         // Zotero: one command at a time, and only in the desktop app.
