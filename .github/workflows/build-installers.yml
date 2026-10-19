@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: build-installers-${{ github.ref }}
@@ -79,3 +79,32 @@ jobs:
             dist/release/*.msi
             dist/release/wordcraft-*-windows-*-portable.zip
           if-no-files-found: error
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: [macos-dmg, windows-msi]
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download built installers
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create or update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.ref_name }}
+          target_commitish: ${{ github.sha }}
+          name: "WordCraft (${{ github.ref_name }})"
+          body: |
+            Automated installer build from branch `${{ github.ref_name }}` (`${{ github.sha }}`).
+            - **macOS:** Download `.dmg`
+            - **Windows:** Download `.msi` (or `-portable.zip`)
+          files: |
+            artifacts/*.dmg
+            artifacts/*.msi
+            artifacts/*.zip
+          prerelease: false
+          make_latest: true
